@@ -1,0 +1,30 @@
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: payae_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: payae
+      POSTGRES_USER: payae_user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    container_name: payae_backend
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payae
+      SPRING_DATASOURCE_USERNAME: payae_user
+      SPRING_DATASOURCE_PASSWORD: password
+
+volumes:
+  postgres_data:
