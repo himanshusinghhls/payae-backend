@@ -19,14 +19,15 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/auth/**").permitAll()
-                        .anyRequest().authenticated()
-                )
-                .sessionManagement(sess ->
-                        sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                );
+        .csrf(csrf -> csrf.disable())
+        .cors(cors -> {})
+        .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/", "/health", "/auth/**").permitAll()
+                .anyRequest().authenticated()
+        )
+        .sessionManagement(sess ->
+                sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        );
 
         http.addFilterBefore(jwtFilter,
                 UsernamePasswordAuthenticationFilter.class);
