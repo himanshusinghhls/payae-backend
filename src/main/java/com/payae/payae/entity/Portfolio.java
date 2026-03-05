@@ -13,10 +13,14 @@ public class Portfolio {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Double savingsBalance;
-    private Double mfUnits;
-    private Double goldGrams;
+    @Column(nullable = false)
+    private Double savingsBalance = 0.0;
 
+    @Column(nullable = false)
+    private Double mfUnits = 0.0;
+
+    @Column(nullable = false)
+    private Double goldGrams = 0.0;
     @OneToOne
     private User user;
 }

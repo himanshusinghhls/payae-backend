@@ -21,10 +21,10 @@ services:
       - "8080:8080"
     depends_on:
       - postgres
+    env_file:
+      - .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payae
-      SPRING_DATASOURCE_USERNAME: payae_user
-      SPRING_DATASOURCE_PASSWORD: password
 
 volumes:
   postgres_data:

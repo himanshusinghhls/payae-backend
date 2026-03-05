@@ -14,10 +14,14 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private Double amount;
 
+    @Column(nullable = false, unique = true)
     private String razorpayOrderId;
-    private String razorpayPaymentId;
+
+    @Column(nullable = false, unique = true)
+    private String razorpayPaymentId;   
     private String status;
 
     private LocalDateTime createdAt;

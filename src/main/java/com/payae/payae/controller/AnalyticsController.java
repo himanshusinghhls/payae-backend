@@ -8,7 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/analytics")
+@RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
 public class AnalyticsController {
 

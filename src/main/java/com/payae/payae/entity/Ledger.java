@@ -14,10 +14,13 @@ public class Ledger {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String type; // PAYMENT, ROUNDUP, ALLOCATION
-    private String assetType; // SAVINGS, MF, GOLD
+    @Column(nullable = false)
+    private String type;
 
+    @Column(nullable = false)
     private Double amount;
+
+    private String assetType;
 
     private String paymentRef;
 

@@ -8,6 +8,7 @@ import com.payae.payae.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -17,24 +18,33 @@ public class RoundUpService {
 
     private final PortfolioRepository portfolioRepository;
     private final TransactionRepository transactionRepository;
-    
+
     public double calculateRoundUp(User user, double amount) {
 
-        user.setAutoSavingPaused(!user.isAutoSavingPaused());
+        if (user.isAutoSavingPaused()) {
+            return 0;
+        }
 
         double roundup;
 
-        if (user.getRoundupType().equals("FIXED")) {
+        if ("FIXED".equals(user.getRoundupType())) {
             roundup = user.getRoundupValue();
         } else {
             roundup = Math.ceil(amount / 10.0) * 10 - amount;
         }
 
-        LocalDateTime start = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0);
+        LocalDateTime start = LocalDateTime.now()
+                .withDayOfMonth(1)
+                .withHour(0)
+                .withMinute(0)
+                .withSecond(0)
+                .withNano(0);
+
         LocalDateTime end = LocalDateTime.now();
 
-        double usedThisMonth = transactionRepository
-                .sumRoundUpAmountByUserAndCreatedAtBetween(user, start, end);
+        double usedThisMonth = Optional.ofNullable(
+                transactionRepository.sumRoundUpAmountByUserAndCreatedAtBetween(user, start, end)
+        ).orElse(0.0);
 
         if (usedThisMonth + roundup > user.getMonthlyCap()) {
             return 0;
@@ -45,18 +55,23 @@ public class RoundUpService {
 
     public void allocate(User user, double roundUpAmount) {
 
-        Portfolio portfolio = portfolioRepository.findByUser(user).orElseThrow();
+        Portfolio portfolio = portfolioRepository
+                .findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Portfolio not found"));
 
         portfolio.setSavingsBalance(
-                portfolio.getSavingsBalance() + (roundUpAmount * user.getAllocationSavings() / 100)
+                portfolio.getSavingsBalance() +
+                        (roundUpAmount * user.getAllocationSavings() / 100)
         );
 
         portfolio.setMfUnits(
-                portfolio.getMfUnits() + (roundUpAmount * user.getAllocationMf() / 100)
+                portfolio.getMfUnits() +
+                        (roundUpAmount * user.getAllocationMf() / 100)
         );
 
         portfolio.setGoldGrams(
-                portfolio.getGoldGrams() + (roundUpAmount * user.getAllocationGold() / 100)
+                portfolio.getGoldGrams() +
+                        (roundUpAmount * user.getAllocationGold() / 100)
         );
 
         portfolioRepository.save(portfolio);

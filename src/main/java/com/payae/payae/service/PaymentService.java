@@ -6,11 +6,13 @@ import com.payae.payae.entity.User;
 import com.payae.payae.repository.PortfolioRepository;
 import com.payae.payae.repository.UserRepository;
 import com.payae.payae.util.RazorpaySignatureUtil;
-import com.razorpay.*;
+import com.razorpay.Order;
+import com.razorpay.RazorpayClient;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -30,7 +32,7 @@ public class PaymentService {
         RazorpayClient client = new RazorpayClient(razorpayKey, razorpaySecret);
 
         JSONObject options = new JSONObject();
-        options.put("amount", (int) (amount * 100)); // in paise
+        options.put("amount", (int) (amount * 100));
         options.put("currency", "INR");
         options.put("receipt", "txn_123456");
 
@@ -39,6 +41,7 @@ public class PaymentService {
         return order.toString();
     }
 
+    @Transactional
     public void verifyPayment(PaymentVerifyRequest request, String email) {
 
         boolean isValid = RazorpaySignatureUtil.verifySignature(
