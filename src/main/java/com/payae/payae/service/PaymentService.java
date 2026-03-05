@@ -58,8 +58,11 @@ public class PaymentService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Portfolio portfolio = portfolioRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Portfolio not found"));
+        Portfolio portfolio = portfolioRepository.findByUser(user);
+
+        if(portfolio == null){
+            throw new RuntimeException("Portfolio not found");
+        }
 
         portfolio.setSavingsBalance(
                 portfolio.getSavingsBalance() + request.getAmount()

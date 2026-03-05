@@ -1,31 +1,29 @@
 package com.payae.payae.controller;
 
 import com.payae.payae.dto.PortfolioResponse;
+import com.payae.payae.entity.Portfolio;
 import com.payae.payae.entity.User;
 import com.payae.payae.mapper.PortfolioMapper;
 import com.payae.payae.repository.PortfolioRepository;
-import com.payae.payae.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/portfolio")
-@RequiredArgsConstructor
+@RequestMapping("/api/v1/portfolio")
 public class PortfolioController {
 
-    private final PortfolioRepository portfolioRepository;
-    private final UserRepository userRepository;
+    @Autowired
+    private PortfolioRepository portfolioRepository;
 
     @GetMapping
-    public PortfolioResponse getPortfolio(Authentication auth) {
+    public PortfolioResponse getPortfolio(@RequestAttribute User user){
 
-        User user = userRepository
-                .findByEmail(auth.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        Portfolio portfolio = portfolioRepository.findByUser(user);
 
-        return portfolioRepository.findByUser(user)
-                .map(PortfolioMapper::toResponse)
-                .orElseThrow(() -> new RuntimeException("Portfolio not found"));
+        if(portfolio == null){
+            return new PortfolioResponse(0.0,0.0,0.0);
+        }
+
+        return PortfolioMapper.toResponse(portfolio);
     }
 }

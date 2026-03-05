@@ -5,12 +5,12 @@ import com.payae.payae.entity.Portfolio;
 
 public class PortfolioMapper {
 
-    public static PortfolioResponse toResponse(Portfolio portfolio) {
+    public static PortfolioResponse toResponse(Portfolio portfolio){
 
-        return PortfolioResponse.builder()
-                .savingsBalance(portfolio.getSavingsBalance())
-                .mfUnits(portfolio.getMfUnits())
-                .goldGrams(portfolio.getGoldGrams())
-                .build();
+        return new PortfolioResponse(
+                portfolio.getSavingsBalance(),
+                portfolio.getMutualFundUnits(),
+                portfolio.getGoldGrams()
+        );
     }
 }

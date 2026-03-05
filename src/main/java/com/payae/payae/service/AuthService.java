@@ -38,12 +38,8 @@ public class AuthService {
 
         userRepository.save(user);
 
-        Portfolio portfolio = Portfolio.builder()
-                .user(user)
-                .savingsBalance(0.0)
-                .mfUnits(0.0)
-                .goldGrams(0.0)
-                .build();
+        Portfolio portfolio = new Portfolio();
+        portfolio.setUser(user);
 
         portfolioRepository.save(portfolio);
     }

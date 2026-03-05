@@ -55,17 +55,18 @@ public class RoundUpService {
 
     public void allocate(User user, double roundUpAmount) {
 
-        Portfolio portfolio = portfolioRepository
-                .findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Portfolio not found"));
+        Portfolio portfolio = portfolioRepository.findByUser(user);
+        if(portfolio == null){
+            throw new RuntimeException("Portfolio not found");
+}
 
         portfolio.setSavingsBalance(
                 portfolio.getSavingsBalance() +
                         (roundUpAmount * user.getAllocationSavings() / 100)
         );
 
-        portfolio.setMfUnits(
-                portfolio.getMfUnits() +
+        portfolio.setMutualFundUnits(
+                portfolio.getMutualFundUnits() +
                         (roundUpAmount * user.getAllocationMf() / 100)
         );
 
