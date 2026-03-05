@@ -2,6 +2,7 @@ package com.payae.payae.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -16,10 +17,13 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Double originalAmount;
-    private Double roundUpAmount;
+    private String type;
 
-    private String razorpayPaymentId;
+    private double amount;
+
+    private String asset;
+
+    private String status;
 
     private LocalDateTime createdAt;
 

@@ -1,14 +1,15 @@
 package com.payae.payae.service;
 
 import com.payae.payae.dto.PaymentVerifyRequest;
-import com.payae.payae.entity.Portfolio;
-import com.payae.payae.entity.User;
-import com.payae.payae.repository.PortfolioRepository;
-import com.payae.payae.repository.UserRepository;
+import com.payae.payae.entity.*;
+import com.payae.payae.repository.*;
 import com.payae.payae.util.RazorpaySignatureUtil;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import lombok.RequiredArgsConstructor;
+
+import java.time.LocalDateTime;
+
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -25,16 +26,19 @@ public class PaymentService {
     private String razorpaySecret;
 
     private final UserRepository userRepository;
+    private final PaymentRepository paymentRepository;
+    private final LedgerRepository ledgerRepository;
     private final PortfolioRepository portfolioRepository;
+    private final RoundUpService roundUpService;
 
     public String createOrder(double amount) throws Exception {
 
         RazorpayClient client = new RazorpayClient(razorpayKey, razorpaySecret);
 
         JSONObject options = new JSONObject();
-        options.put("amount", (int) (amount * 100));
+        options.put("amount", (int)(amount * 100));
         options.put("currency", "INR");
-        options.put("receipt", "txn_123456");
+        options.put("receipt", "txn_" + System.currentTimeMillis());
 
         Order order = client.orders.create(options);
 
@@ -44,19 +48,36 @@ public class PaymentService {
     @Transactional
     public void verifyPayment(PaymentVerifyRequest request, String email) {
 
-        boolean isValid = RazorpaySignatureUtil.verifySignature(
+        boolean valid = RazorpaySignatureUtil.verifySignature(
                 request.getOrderId(),
                 request.getPaymentId(),
                 request.getSignature(),
                 razorpaySecret
         );
 
-        if (!isValid) {
-            throw new RuntimeException("Payment verification failed");
+        if(!valid){
+            throw new RuntimeException("Invalid payment signature");
         }
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Payment payment = new Payment();
+        payment.setRazorpayOrderId(request.getOrderId());
+        payment.setRazorpayPaymentId(request.getPaymentId());
+        payment.setAmount(request.getAmount());
+        payment.setUser(user);
+        payment.setStatus("SUCCESS");
+        payment.setCreatedAt(LocalDateTime.now());
+
+        paymentRepository.save(payment);
+
+        Ledger ledger = new Ledger();
+        ledger.setUser(user);
+        ledger.setAmount(request.getAmount());
+        ledger.setType("PAYMENT");
+
+        ledgerRepository.save(ledger);
 
         Portfolio portfolio = portfolioRepository.findByUser(user);
 
@@ -69,5 +90,7 @@ public class PaymentService {
         );
 
         portfolioRepository.save(portfolio);
+
+        roundUpService.calculateRoundUp(user, request.getAmount());
     }
 }
