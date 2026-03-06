@@ -7,9 +7,7 @@ import com.payae.payae.util.RazorpaySignatureUtil;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import lombok.RequiredArgsConstructor;
-
 import java.time.LocalDateTime;
-
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -28,20 +26,15 @@ public class PaymentService {
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
     private final LedgerRepository ledgerRepository;
-    private final PortfolioRepository portfolioRepository;
-    private final RoundUpService roundUpService;
+    private final RoundUpService roundUpService; // Removed PortfolioRepository, handled by RoundUp
 
     public String createOrder(double amount) throws Exception {
-
         RazorpayClient client = new RazorpayClient(razorpayKey, razorpaySecret);
-
         JSONObject options = new JSONObject();
         options.put("amount", (int)(amount * 100));
         options.put("currency", "INR");
         options.put("receipt", "txn_" + System.currentTimeMillis());
-
         Order order = client.orders.create(options);
-
         return order.toString();
     }
 
@@ -69,27 +62,13 @@ public class PaymentService {
         payment.setUser(user);
         payment.setStatus("SUCCESS");
         payment.setCreatedAt(LocalDateTime.now());
-
         paymentRepository.save(payment);
 
         Ledger ledger = new Ledger();
         ledger.setUser(user);
         ledger.setAmount(request.getAmount());
-        ledger.setType("PAYMENT");
-
+        ledger.setType("PAYMENT_EXPENSE");
         ledgerRepository.save(ledger);
-
-        Portfolio portfolio = portfolioRepository.findByUser(user);
-
-        if(portfolio == null){
-            throw new RuntimeException("Portfolio not found");
-        }
-
-        portfolio.setSavingsBalance(
-                portfolio.getSavingsBalance() + request.getAmount()
-        );
-
-        portfolioRepository.save(portfolio);
 
         roundUpService.calculateRoundUp(user, request.getAmount());
     }
