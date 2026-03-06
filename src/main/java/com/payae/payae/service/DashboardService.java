@@ -20,6 +20,7 @@ public class DashboardService {
     public DashboardResponse getDashboard(User user){
 
         Double totalInvested = paymentRepository.sumPaymentsByUser(user);
+        if (totalInvested == null) totalInvested = 0.0;
 
         Portfolio portfolio = portfolioRepository.findByUser(user);
 
@@ -29,7 +30,7 @@ public class DashboardService {
 
         if(portfolio != null){
             savings = portfolio.getSavingsBalance();
-            mf = portfolio.getMutualFundUnits();
+            mf = portfolio.getMfUnits();
             gold = portfolio.getGoldGrams();
         }
 

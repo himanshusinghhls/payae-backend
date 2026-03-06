@@ -9,7 +9,7 @@ public class PortfolioMapper {
 
         return new PortfolioResponse(
                 portfolio.getSavingsBalance(),
-                portfolio.getMutualFundUnits(),
+                portfolio.getMfUnits(),
                 portfolio.getGoldGrams()
         );
     }

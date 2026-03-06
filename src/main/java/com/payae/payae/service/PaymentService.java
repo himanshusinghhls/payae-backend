@@ -26,7 +26,8 @@ public class PaymentService {
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
     private final LedgerRepository ledgerRepository;
-    private final RoundUpService roundUpService; // Removed PortfolioRepository, handled by RoundUp
+    
+    private final RoundUpService roundUpService; 
 
     public String createOrder(double amount) throws Exception {
         RazorpayClient client = new RazorpayClient(razorpayKey, razorpaySecret);
@@ -70,6 +71,6 @@ public class PaymentService {
         ledger.setType("PAYMENT_EXPENSE");
         ledgerRepository.save(ledger);
 
-        roundUpService.calculateRoundUp(user, request.getAmount());
+        roundUpService.processRoundUp(user, request.getAmount());
     }
 }

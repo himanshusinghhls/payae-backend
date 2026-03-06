@@ -1,80 +1,90 @@
 package com.payae.payae.service;
 
-import com.payae.payae.entity.Portfolio;
-import com.payae.payae.entity.User;
-import com.payae.payae.repository.PortfolioRepository;
-import com.payae.payae.repository.TransactionRepository;
-
+import com.payae.payae.entity.*;
+import com.payae.payae.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
-
-import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RoundUpService {
 
-    private final PortfolioRepository portfolioRepository;
     private final TransactionRepository transactionRepository;
+    private final LedgerRepository ledgerRepository;
+    private final PortfolioService portfolioService;
+    private final AllocationSettingsRepository allocationSettingsRepository;
 
-    public double calculateRoundUp(User user, double amount) {
+    @Transactional
+    public void processRoundUp(User user, double paymentAmount) {
 
         if (user.isAutoSavingPaused()) {
-            return 0;
+            log.info("Auto-saving paused for user: {}", user.getId());
+            return;
         }
 
-        double roundup;
-
+        double roundup = 0.0;
         if ("FIXED".equals(user.getRoundupType())) {
-            roundup = user.getRoundupValue();
+            roundup = user.getRoundupValue() != null ? user.getRoundupValue() : 0.0;
         } else {
-            roundup = Math.ceil(amount / 10.0) * 10 - amount;
+            double next10 = Math.ceil(paymentAmount / 10.0) * 10;
+            roundup = next10 > paymentAmount ? next10 - paymentAmount : 0.0;
         }
 
-        LocalDateTime start = LocalDateTime.now()
-                .withDayOfMonth(1)
-                .withHour(0)
-                .withMinute(0)
-                .withSecond(0)
-                .withNano(0);
+        if (roundup <= 0) return;
 
-        LocalDateTime end = LocalDateTime.now();
-
+        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0);
         double usedThisMonth = Optional.ofNullable(
-                transactionRepository.sumRoundUpAmountByUserAndCreatedAtBetween(user, start, end)
+                transactionRepository.sumRoundUpAmountByUserAndCreatedAtBetween(user, startOfMonth, LocalDateTime.now())
         ).orElse(0.0);
 
-        if (usedThisMonth + roundup > user.getMonthlyCap()) {
-            return 0;
+        if (user.getMonthlyCap() != null && (usedThisMonth + roundup > user.getMonthlyCap())) {
+            log.info("Monthly cap reached for user: {}", user.getId());
+            return;
         }
 
-        return roundup;
-    }
+        Ledger roundUpLedger = Ledger.builder()
+                .user(user)
+                .amount(roundup)
+                .type("ROUND_UP")
+                .build();
+        ledgerRepository.save(roundUpLedger);
 
-    public void allocate(User user, double roundUpAmount) {
+        AllocationSettings settings = allocationSettingsRepository.findByUser(user)
+                .orElseGet(() -> {
+                    AllocationSettings defaults = new AllocationSettings();
+                    defaults.setSavingsPercent(40.0);
+                    defaults.setMutualFundPercent(40.0);
+                    defaults.setGoldPercent(20.0);
+                    return defaults;
+                });
 
-        Portfolio portfolio = portfolioRepository.findByUser(user);
-        if(portfolio == null){
-            throw new RuntimeException("Portfolio not found");
-}
+        Map<String, Double> allocationInr = new HashMap<>();
+        allocationInr.put("SAVINGS", roundup * (settings.getSavingsPercent() / 100.0));
+        allocationInr.put("MUTUAL_FUND", roundup * (settings.getMutualFundPercent() / 100.0));
+        allocationInr.put("GOLD", roundup * (settings.getGoldPercent() / 100.0));
 
-        portfolio.setSavingsBalance(
-                portfolio.getSavingsBalance() +
-                        (roundUpAmount * user.getAllocationSavings() / 100)
-        );
+        portfolioService.updatePortfolio(user, allocationInr);
 
-        portfolio.setMutualFundUnits(
-                portfolio.getMutualFundUnits() +
-                        (roundUpAmount * user.getAllocationMf() / 100)
-        );
+        allocationInr.forEach((asset, amount) -> {
+            if (amount > 0) {
+                Ledger investmentLedger = Ledger.builder()
+                        .user(user)
+                        .amount(amount)
+                        .type("INVESTMENT")
+                        .assetType(asset)
+                        .build();
+                ledgerRepository.save(investmentLedger);
+            }
+        });
 
-        portfolio.setGoldGrams(
-                portfolio.getGoldGrams() +
-                        (roundUpAmount * user.getAllocationGold() / 100)
-        );
-
-        portfolioRepository.save(portfolio);
+        log.info("Successfully routed ₹{} round-up to portfolio for user {}", roundup, user.getId());
     }
 }

@@ -3,47 +3,46 @@ package com.payae.payae.service;
 import com.payae.payae.entity.Portfolio;
 import com.payae.payae.entity.User;
 import com.payae.payae.repository.PortfolioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class PortfolioService {
 
-    @Autowired
-    private PortfolioRepository portfolioRepository;
+    private final PortfolioRepository portfolioRepository;
+    private final MarketSimulationService marketSimulationService;
 
-    @Autowired
-    private MarketSimulationService marketSimulationService;
-
-    public void updatePortfolio(User user, Map<String,Double> allocation){
+    @Transactional
+    public void updatePortfolio(User user, Map<String, Double> allocationInr) {
 
         Portfolio portfolio = portfolioRepository.findByUser(user);
 
-        if(portfolio == null){
-            portfolio = new Portfolio(user);
+        if (portfolio == null) {
+            portfolio = new Portfolio();
+            portfolio.setUser(user);
+            portfolio.setSavingsBalance(0.0);
+            portfolio.setMfUnits(0.0);
+            portfolio.setGoldGrams(0.0);
         }
 
-        portfolio.setSavingsBalance(
-                portfolio.getSavingsBalance() + allocation.get("SAVINGS")
-        );
+        double savingsInr = allocationInr.getOrDefault("SAVINGS", 0.0);
+        portfolio.setSavingsBalance(portfolio.getSavingsBalance() + savingsInr);
 
-        double nav = marketSimulationService.getNav();
+        double mfInr = allocationInr.getOrDefault("MUTUAL_FUND", 0.0);
+        if (mfInr > 0) {
+            double nav = marketSimulationService.getCurrentNav(); 
+            portfolio.setMfUnits(portfolio.getMfUnits() + (mfInr / nav));
+        }
 
-        double units = allocation.get("MUTUAL_FUND") / nav;
-
-        portfolio.setMutualFundUnits(
-                portfolio.getMutualFundUnits() + units
-        );
-
-        double goldPrice = marketSimulationService.getGoldPrice();
-
-        double grams = allocation.get("GOLD") / goldPrice;
-
-        portfolio.setGoldGrams(
-                portfolio.getGoldGrams() + grams
-        );
+        double goldInr = allocationInr.getOrDefault("GOLD", 0.0);
+        if (goldInr > 0) {
+            double goldPrice = marketSimulationService.getCurrentGoldPrice();
+            portfolio.setGoldGrams(portfolio.getGoldGrams() + (goldInr / goldPrice));
+        }
 
         portfolioRepository.save(portfolio);
     }
