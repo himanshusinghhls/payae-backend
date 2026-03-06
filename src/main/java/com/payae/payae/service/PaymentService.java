@@ -15,6 +15,7 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.razorpay.Utils;
 
 @Service
 @RequiredArgsConstructor
@@ -45,35 +46,40 @@ public class PaymentService {
     @Transactional
     public void verifyPayment(PaymentVerifyRequest request, String email) {
 
-        boolean valid = RazorpaySignatureUtil.verifySignature(
-                request.getOrderId(),
-                request.getPaymentId(),
-                request.getSignature(),
-                razorpaySecret
-        );
+        try {
+            JSONObject options = new JSONObject();
+            options.put("razorpay_order_id", request.getOrderId());
+            options.put("razorpay_payment_id", request.getPaymentId());
+            options.put("razorpay_signature", request.getSignature());
 
-        if (!valid) {
-            throw new RuntimeException("Invalid payment signature");
+            boolean valid = Utils.verifyPaymentSignature(options, razorpaySecret);
+
+            if(!valid){
+                throw new RuntimeException("Invalid payment signature");
+            }
+
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            Payment payment = new Payment();
+            payment.setRazorpayOrderId(request.getOrderId());
+            payment.setRazorpayPaymentId(request.getPaymentId());
+            payment.setAmount(request.getAmount());
+            payment.setUser(user);
+            payment.setStatus("SUCCESS");
+            payment.setCreatedAt(LocalDateTime.now());
+            paymentRepository.save(payment);
+
+            Ledger ledger = new Ledger();
+            ledger.setUser(user);
+            ledger.setAmount(request.getAmount());
+            ledger.setType("PAYMENT_EXPENSE");
+            ledgerRepository.save(ledger);
+
+            roundUpService.processRoundUp(user, request.getRoundUpAmount());
+
+        } catch (Exception e) {
+            throw new RuntimeException("Signature verification failed: " + e.getMessage());
         }
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        Payment payment = new Payment();
-        payment.setRazorpayOrderId(request.getOrderId());
-        payment.setRazorpayPaymentId(request.getPaymentId());
-        payment.setAmount(request.getAmount());
-        payment.setUser(user);
-        payment.setStatus("SUCCESS");
-        payment.setCreatedAt(LocalDateTime.now());
-        paymentRepository.save(payment);
-
-        Ledger ledger = new Ledger();
-        ledger.setUser(user);
-        ledger.setAmount(request.getAmount());
-        ledger.setType("PAYMENT_EXPENSE");
-        ledgerRepository.save(ledger);
-
-        roundUpService.processRoundUp(user, request.getRoundUpAmount());
     }
 }
