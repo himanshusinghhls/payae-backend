@@ -34,11 +34,15 @@ public class DashboardService {
             gold = portfolio.getGoldGrams();
         }
 
+        Double currentBalance = user.getBankBalance();
+        if (currentBalance == null) currentBalance = 0.0;
+
         return new DashboardResponse(
                 totalInvested,
                 savings,
                 mf,
-                gold
+                gold,
+                currentBalance
         );
     }
 }
