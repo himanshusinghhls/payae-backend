@@ -23,6 +23,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Builder.Default
+    private Double bankBalance = 10000.0;
+
     private String roundupType;
     private Double roundupValue;
 
