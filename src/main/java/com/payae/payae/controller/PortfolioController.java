@@ -5,25 +5,27 @@ import com.payae.payae.entity.Portfolio;
 import com.payae.payae.entity.User;
 import com.payae.payae.mapper.PortfolioMapper;
 import com.payae.payae.repository.PortfolioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.payae.payae.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/portfolio")
+@RequiredArgsConstructor
 public class PortfolioController {
 
-    @Autowired
-    private PortfolioRepository portfolioRepository;
+    private final PortfolioRepository portfolioRepository;
+    private final UserRepository userRepository;
 
     @GetMapping
-    public PortfolioResponse getPortfolio(@RequestAttribute User user){
-
+    public PortfolioResponse getPortfolio(Authentication auth){
+        User user = userRepository.findByEmail(auth.getName()).orElseThrow();
         Portfolio portfolio = portfolioRepository.findByUser(user);
 
         if(portfolio == null){
             return new PortfolioResponse(0.0,0.0,0.0);
         }
-
         return PortfolioMapper.toResponse(portfolio);
     }
 }

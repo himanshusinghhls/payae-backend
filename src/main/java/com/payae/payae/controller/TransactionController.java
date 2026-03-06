@@ -1,8 +1,8 @@
 package com.payae.payae.controller;
 
-import com.payae.payae.entity.Transaction;
+import com.payae.payae.entity.Ledger;
 import com.payae.payae.entity.User;
-import com.payae.payae.repository.TransactionRepository;
+import com.payae.payae.repository.LedgerRepository;
 import com.payae.payae.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -15,17 +15,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TransactionController {
 
-    private final TransactionRepository transactionRepository;
+    private final LedgerRepository ledgerRepository;
     private final UserRepository userRepository;
 
     @GetMapping
-    public List<Transaction> getTransactions(Authentication auth) {
-
+    public List<Ledger> getTransactions(Authentication auth) {
         User user = userRepository.findByEmail(auth.getName()).orElseThrow();
-
-        return transactionRepository.findAll()
+        
+        return ledgerRepository.findAll()
                 .stream()
-                .filter(t -> t.getUser().getId().equals(user.getId()))
+                .filter(l -> l.getUser().getId().equals(user.getId()))
                 .toList();
     }
 }
