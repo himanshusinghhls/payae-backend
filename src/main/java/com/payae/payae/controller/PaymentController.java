@@ -3,7 +3,6 @@ package com.payae.payae.controller;
 import com.payae.payae.dto.*;
 import com.payae.payae.service.PaymentService;
 import com.payae.payae.dto.common.*;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -22,12 +21,10 @@ public class PaymentController {
 
     @PostMapping("/verify")
     public ApiResponse<?> verifyPayment(
-            @Valid @RequestBody PaymentVerifyRequest request,
+            @RequestBody PaymentVerifyRequest request,
             Authentication authentication
     ){
-
         paymentService.verifyPayment(request, authentication.getName());
-
-        return new ApiResponse<>(true,"Payment verified",null);
+        return new ApiResponse<>(true, "Payment verified", null);
     }
 }

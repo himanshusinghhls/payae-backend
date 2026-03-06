@@ -21,11 +21,16 @@ public class Ledger {
     private Double amount;
 
     private String assetType;
-
     private String paymentRef;
-
     private LocalDateTime timestamp;
 
     @ManyToOne
     private User user;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.timestamp == null) {
+            this.timestamp = LocalDateTime.now();
+        }
+    }
 }
