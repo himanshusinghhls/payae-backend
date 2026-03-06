@@ -4,6 +4,7 @@ import com.payae.payae.entity.*;
 import com.payae.payae.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,26 +24,26 @@ public class RoundUpService {
     private final AllocationSettingsRepository allocationSettingsRepository;
 
     @Transactional
-    public void processRoundUp(User user, double paymentAmount) {
+    public void processRoundUp(User user, double customRoundUpAmount) {
 
-        if (user.isAutoSavingPaused()) {
-            log.info("Auto-saving paused for user: {}", user.getId());
+        if (user.isAutoSavingPaused() || customRoundUpAmount <= 0) {
+            log.info("Auto-saving skipped or zero for user: {}", user.getId());
             return;
         }
 
-        double roundup = 0.0;
-        if ("FIXED".equals(user.getRoundupType())) {
-            roundup = user.getRoundupValue() != null ? user.getRoundupValue() : 0.0;
-        } else {
-            double next10 = Math.ceil(paymentAmount / 10.0) * 10;
-            roundup = next10 > paymentAmount ? next10 - paymentAmount : 0.0;
-        }
+        double roundup = customRoundUpAmount;
 
-        if (roundup <= 0) return;
+        LocalDateTime startOfMonth = LocalDateTime.now()
+                .withDayOfMonth(1)
+                .withHour(0)
+                .withMinute(0);
 
-        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0);
         double usedThisMonth = Optional.ofNullable(
-                transactionRepository.sumRoundUpAmountByUserAndCreatedAtBetween(user, startOfMonth, LocalDateTime.now())
+                transactionRepository.sumRoundUpAmountByUserAndCreatedAtBetween(
+                        user,
+                        startOfMonth,
+                        LocalDateTime.now()
+                )
         ).orElse(0.0);
 
         if (user.getMonthlyCap() != null && (usedThisMonth + roundup > user.getMonthlyCap())) {

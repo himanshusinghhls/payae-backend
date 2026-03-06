@@ -6,8 +6,11 @@ import com.payae.payae.repository.*;
 import com.payae.payae.util.RazorpaySignatureUtil;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
+
 import lombok.RequiredArgsConstructor;
+
 import java.time.LocalDateTime;
+
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,13 +29,13 @@ public class PaymentService {
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
     private final LedgerRepository ledgerRepository;
-    
-    private final RoundUpService roundUpService; 
+
+    private final RoundUpService roundUpService;
 
     public String createOrder(double amount) throws Exception {
         RazorpayClient client = new RazorpayClient(razorpayKey, razorpaySecret);
         JSONObject options = new JSONObject();
-        options.put("amount", (int)(amount * 100));
+        options.put("amount", (int) (amount * 100));
         options.put("currency", "INR");
         options.put("receipt", "txn_" + System.currentTimeMillis());
         Order order = client.orders.create(options);
@@ -49,7 +52,7 @@ public class PaymentService {
                 razorpaySecret
         );
 
-        if(!valid){
+        if (!valid) {
             throw new RuntimeException("Invalid payment signature");
         }
 
@@ -71,6 +74,6 @@ public class PaymentService {
         ledger.setType("PAYMENT_EXPENSE");
         ledgerRepository.save(ledger);
 
-        roundUpService.processRoundUp(user, request.getAmount());
+        roundUpService.processRoundUp(user, request.getRoundUpAmount());
     }
 }
