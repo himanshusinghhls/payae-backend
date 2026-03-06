@@ -1,43 +1,51 @@
 package com.payae.payae.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 public class PaymentVerifyRequest {
 
+    @NotBlank(message="Order ID required")
     private String orderId;
+
+    @NotBlank(message="Payment ID required")
     private String paymentId;
+
+    @NotBlank(message="Signature required")
     private String signature;
-    private double amount;
 
-    public PaymentVerifyRequest() {}
+    @NotNull(message="Amount required")
+    private Double amount;
 
-    public String getOrderId() {
+    public String getOrderId(){
         return orderId;
     }
 
-    public void setOrderId(String orderId) {
+    public void setOrderId(String orderId){
         this.orderId = orderId;
     }
 
-    public String getPaymentId() {
+    public String getPaymentId(){
         return paymentId;
     }
 
-    public void setPaymentId(String paymentId) {
+    public void setPaymentId(String paymentId){
         this.paymentId = paymentId;
     }
 
-    public String getSignature() {
+    public String getSignature(){
         return signature;
     }
 
-    public void setSignature(String signature) {
+    public void setSignature(String signature){
         this.signature = signature;
     }
 
-    public double getAmount() {
+    public Double getAmount(){
         return amount;
     }
 
-    public void setAmount(double amount) {
+    public void setAmount(Double amount){
         this.amount = amount;
     }
 }
