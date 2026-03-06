@@ -6,20 +6,24 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserRepository userRepository;
 
-    @PostMapping("/toggle-pause")
-    public void togglePause(Authentication auth) {
-
+    @GetMapping("/me")
+    public Map<String, String> getCurrentProfile(Authentication auth) {
         User user = userRepository.findByEmail(auth.getName()).orElseThrow();
-
-        user.setAutoSavingPaused(!user.isAutoSavingPaused());
-
-        userRepository.save(user);
+        
+        Map<String, String> profile = new HashMap<>();
+        profile.put("name", user.getName());
+        profile.put("email", user.getEmail());
+        
+        return profile;
     }
 }
