@@ -83,6 +83,7 @@ public class PaymentService {
             ledger.setUser(user);
             ledger.setAmount(request.getAmount());
             ledger.setType("PAYMENT_EXPENSE");
+            ledger.setDescription(request.getPayeeName() != null && !request.getPayeeName().isEmpty() ? request.getPayeeName() : "UPI Payment"); 
             ledgerRepository.save(ledger);
 
             roundUpService.processRoundUp(user, roundUp);

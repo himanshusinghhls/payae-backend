@@ -13,7 +13,7 @@ public class Ledger {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    private String description;
     @Column(nullable = false)
     private String type;
 

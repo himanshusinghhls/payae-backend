@@ -9,4 +9,7 @@ public class PaymentVerifyRequest {
     private String signature;
     private Double amount;
     private Double roundUpAmount;
+    private String payeeName;
+    public String getPayeeName() { return payeeName; }
+    public void setPayeeName(String payeeName) { this.payeeName = payeeName; }
 }
