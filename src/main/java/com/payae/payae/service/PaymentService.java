@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -53,40 +54,64 @@ public class PaymentService {
                 throw new RuntimeException("Invalid payment signature");
             }
 
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            User sender = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Sender not found"));
 
-            if (user.getBankBalance() == null) {
-                user.setBankBalance(10000.0);
+            if (sender.getBankBalance() == null) {
+                sender.setBankBalance(10000.0);
             }
 
             double roundUp = request.getRoundUpAmount() != null ? request.getRoundUpAmount() : 0.0;
             double totalCharge = request.getAmount() + roundUp;
 
-            if (user.getBankBalance() < totalCharge) {
+            if (sender.getBankBalance() < totalCharge) {
                 throw new RuntimeException("Insufficient virtual bank balance!");
             }
 
-            user.setBankBalance(user.getBankBalance() - totalCharge);
-            userRepository.save(user);
+            sender.setBankBalance(sender.getBankBalance() - totalCharge);
+            userRepository.save(sender);
+
+            String payeeUpi = request.getPayeeUpi();
+            String actualPayeeName = request.getPayeeName() != null && !request.getPayeeName().isEmpty() ? request.getPayeeName() : "UPI Payment";
+
+            if (payeeUpi != null && !payeeUpi.isEmpty()) {
+                Optional<User> receiverOpt = userRepository.findByEmail(payeeUpi);
+                
+                if (receiverOpt.isPresent()) {
+                    User receiver = receiverOpt.get();
+                    
+                    double currentReceiverBal = receiver.getBankBalance() != null ? receiver.getBankBalance() : 0.0;
+                    receiver.setBankBalance(currentReceiverBal + request.getAmount());
+                    userRepository.save(receiver);
+
+                    Ledger receiverLedger = new Ledger();
+                    receiverLedger.setUser(receiver);
+                    receiverLedger.setAmount(request.getAmount());
+                    receiverLedger.setType("PAYMENT_RECEIVED");
+                    receiverLedger.setDescription("From " + sender.getName());
+                    ledgerRepository.save(receiverLedger);
+
+                    actualPayeeName = receiver.getName(); 
+                }
+            }
 
             Payment payment = new Payment();
             payment.setRazorpayOrderId(request.getOrderId());
             payment.setRazorpayPaymentId(request.getPaymentId());
             payment.setAmount(request.getAmount());
-            payment.setUser(user);
+            payment.setUser(sender);
             payment.setStatus("SUCCESS");
             payment.setCreatedAt(LocalDateTime.now());
             paymentRepository.save(payment);
 
             Ledger ledger = new Ledger();
-            ledger.setUser(user);
+            ledger.setUser(sender);
             ledger.setAmount(request.getAmount());
             ledger.setType("PAYMENT_EXPENSE");
-            ledger.setDescription(request.getPayeeName() != null && !request.getPayeeName().isEmpty() ? request.getPayeeName() : "UPI Payment"); 
+            ledger.setDescription(actualPayeeName); 
             ledgerRepository.save(ledger);
 
-            roundUpService.processRoundUp(user, roundUp);
+            roundUpService.processRoundUp(sender, roundUp);
 
         } catch (Exception e) {
             throw new RuntimeException("Signature verification failed: " + e.getMessage());
@@ -110,6 +135,8 @@ public class PaymentService {
         ledger.setUser(user);
         ledger.setAmount(request.getAmount());
         ledger.setType("PAYMENT_FAILED");
+        String failedPayee = request.getPayeeName() != null && !request.getPayeeName().isEmpty() ? request.getPayeeName() : "Unknown";
+        ledger.setDescription(failedPayee);
         ledgerRepository.save(ledger);
     }
 }
