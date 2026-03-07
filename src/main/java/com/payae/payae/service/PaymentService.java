@@ -41,7 +41,6 @@ public class PaymentService {
 
     @Transactional
     public void verifyPayment(PaymentVerifyRequest request, String email) {
-
         try {
             JSONObject options = new JSONObject();
             options.put("razorpay_order_id", request.getOrderId());
@@ -91,5 +90,25 @@ public class PaymentService {
         } catch (Exception e) {
             throw new RuntimeException("Signature verification failed: " + e.getMessage());
         }
+    }
+
+    @Transactional
+    public void logFailedPayment(PaymentVerifyRequest request, String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Payment payment = new Payment();
+        payment.setRazorpayOrderId(request.getOrderId());
+        payment.setAmount(request.getAmount());
+        payment.setUser(user);
+        payment.setStatus("FAILED");
+        payment.setCreatedAt(LocalDateTime.now());
+        paymentRepository.save(payment);
+
+        Ledger ledger = new Ledger();
+        ledger.setUser(user);
+        ledger.setAmount(request.getAmount());
+        ledger.setType("PAYMENT_FAILED");
+        ledgerRepository.save(ledger);
     }
 }

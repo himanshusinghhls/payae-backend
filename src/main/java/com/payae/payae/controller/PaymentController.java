@@ -27,4 +27,13 @@ public class PaymentController {
         paymentService.verifyPayment(request, authentication.getName());
         return new ApiResponse<>(true, "Payment verified", null);
     }
+
+    @PostMapping("/failed")
+    public ApiResponse<?> logFailedPayment(
+            @RequestBody PaymentVerifyRequest request,
+            Authentication authentication
+    ){
+        paymentService.logFailedPayment(request, authentication.getName());
+        return new ApiResponse<>(true, "Failed payment logged", null);
+    }
 }
