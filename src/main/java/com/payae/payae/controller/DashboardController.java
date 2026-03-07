@@ -19,8 +19,7 @@ public class DashboardController {
     @GetMapping
     public DashboardResponse getDashboard(Authentication auth) {
         User user = userRepository.findByEmail(auth.getName()).orElseThrow();
-
-        if (user.getBankBalance() == null || user.getBankBalance() <= 0.0) {
+        if (user.getBankBalance() == null) {
             user.setBankBalance(10000.0);
             userRepository.save(user);
         }

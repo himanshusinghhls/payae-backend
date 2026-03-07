@@ -26,4 +26,22 @@ public class UserController {
         
         return profile;
     }
+
+    @PostMapping("/topup")
+    public Map<String, Object> topUpWallet(Authentication auth, @RequestBody Map<String, Double> payload) {
+        User user = userRepository.findByEmail(auth.getName()).orElseThrow();
+        
+        Double amountToAdd = payload.getOrDefault("amount", 10000.0);
+        Double currentBalance = user.getBankBalance() != null ? user.getBankBalance() : 0.0;
+        
+        user.setBankBalance(currentBalance + amountToAdd);
+        userRepository.save(user);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("newBalance", user.getBankBalance());
+        response.put("message", "Wallet topped up successfully!");
+        
+        return response;
+    }
 }
