@@ -24,6 +24,4 @@ public class RoundUpSettings {
     private User user;
 
     public RoundUpSettings() {}
-
-    // getters setters
 }
