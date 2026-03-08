@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: jdbc:postgresql://ep-icy-math-a10ww8ba-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+    username: neondb_owner
+    password: npg_Mf1scEP0ntUD
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -11,7 +11,7 @@ spring:
     open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
-mail:
+  mail:
     host: smtp.gmail.com
     port: 587
     username: payae.in@gmail.com
