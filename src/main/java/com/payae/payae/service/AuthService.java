@@ -37,6 +37,7 @@ public class AuthService {
         otpCache.put(email, otp);
 
         SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("payae.in@gmail.com"); 
         message.setTo(email);
         message.setSubject("PayAE Registration OTP");
         message.setText("Your OTP to verify your PayAE account is: " + otp + "\n\nWelcome to the future of micro-investing.");
