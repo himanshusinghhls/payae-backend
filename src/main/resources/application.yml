@@ -11,6 +11,18 @@ spring:
     open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
+mail:
+    host: smtp.gmail.com
+    port: 587
+    username: payae.in@gmail.com
+    password: pfzxonhfymttuttg
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 server:
   port: 8080
 
