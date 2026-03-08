@@ -11,20 +11,9 @@ spring:
     open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
-  mail:
-    host: smtp.gmail.com
-    port: 465
-    username: payae.in@gmail.com
-    password: ttdmyfsbablguiyl
-    properties:
-      mail:
-        smtp:
-          auth: true
-          ssl:
-            enable: true
-          connectiontimeout: 15000
-          timeout: 15000
-          writetimeout: 15000
+brevo:
+  api:
+    key: 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
 
 server:
   port: 8080

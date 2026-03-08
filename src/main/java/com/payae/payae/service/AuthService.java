@@ -5,14 +5,17 @@ import com.payae.payae.entity.*;
 import com.payae.payae.repository.*;
 import com.payae.payae.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.web.client.RestTemplate;
 import com.payae.payae.exception.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,7 +28,9 @@ public class AuthService {
     private final PortfolioRepository portfolioRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final JavaMailSender mailSender;
+
+    @Value("${brevo.api.key}")
+    private String brevoApiKey;
 
     private final Map<String, String> otpCache = new ConcurrentHashMap<>();
 
@@ -35,13 +40,38 @@ public class AuthService {
         }
         String otp = String.format("%06d", new Random().nextInt(999999));
         otpCache.put(email, otp);
+        RestTemplate restTemplate = new RestTemplate();
+        String url = "https://api.brevo.com/v3/smtp/email";
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom("payae.in@gmail.com"); 
-        message.setTo(email);
-        message.setSubject("PayAE Registration OTP");
-        message.setText("Your OTP to verify your PayAE account is: " + otp + "\n\nWelcome to the future of micro-investing.");
-        mailSender.send(message);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.set("api-key", brevoApiKey);
+
+        Map<String, Object> sender = Map.of("name", "PayAE Security", "email", "payae.in@gmail.com");
+        Map<String, Object> to = Map.of("email", email);
+        
+        Map<String, Object> body = Map.of(
+            "sender", sender,
+            "to", List.of(to),
+            "subject", "Your PayAE Verification Code",
+            "htmlContent", "<html><body><div style='font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;'>" +
+                           "<h2 style='color: #0A0F1C;'>Welcome to PayAE!</h2>" +
+                           "<p>Your secure 6-digit verification code is:</p>" +
+                           "<h1 style='color: #00E5FF; font-size: 32px; letter-spacing: 5px;'>" + otp + "</h1>" +
+                           "<p style='color: #888;'>Do not share this code with anyone. It will expire shortly.</p>" +
+                           "</div></body></html>"
+        );
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        try {
+            restTemplate.postForEntity(url, request, String.class);
+            System.out.println("✅ HTTP Email successfully sent to " + email);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send email via Brevo HTTP API: " + e.getMessage());
+            throw new RuntimeException("Email delivery failed. Please check your Brevo API key.");
+        }
     }
 
     public void verifyOtpAndRegister(RegisterRequest request, String otp) {
