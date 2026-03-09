@@ -1,11 +1,14 @@
 package com.payae.payae.controller;
 
+import com.payae.payae.entity.Ledger;
 import com.payae.payae.entity.User;
+import com.payae.payae.repository.LedgerRepository;
 import com.payae.payae.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,6 +18,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final LedgerRepository ledgerRepository;
 
     @GetMapping("/me")
     public Map<String, String> getCurrentProfile(Authentication auth) {
@@ -28,19 +32,38 @@ public class UserController {
     }
 
     @PostMapping("/topup")
-    public Map<String, Object> topUpWallet(Authentication auth, @RequestBody Map<String, Double> payload) {
+    public Map<String, Object> topUpWallet(Authentication auth, @RequestBody Map<String, Object> payload) {
         User user = userRepository.findByEmail(auth.getName()).orElseThrow();
         
-        Double amountToAdd = payload.getOrDefault("amount", 10000.0);
+        Number amountNum = (Number) payload.get("amount");
+        Double amountToAdd = amountNum != null ? amountNum.doubleValue() : 10000.0;
+        
+        String assetType = (String) payload.get("assetType");
+
         Double currentBalance = user.getBankBalance() != null ? user.getBankBalance() : 0.0;
         
         user.setBankBalance(currentBalance + amountToAdd);
         userRepository.save(user);
 
+        Ledger ledger = new Ledger();
+        ledger.setUser(user);
+        ledger.setAmount(amountToAdd);
+        ledger.setTimestamp(LocalDateTime.now());
+        
+        if (assetType != null && !assetType.isEmpty()) {
+            ledger.setType("LIQUIDATION");
+            ledger.setAssetType(assetType);
+            ledger.setDescription("Liquidated from " + assetType);
+        } else {
+            ledger.setType("TOPUP");
+            ledger.setDescription("Wallet Top-Up");
+        }
+        ledgerRepository.save(ledger);
+
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("newBalance", user.getBankBalance());
-        response.put("message", "Wallet topped up successfully!");
+        response.put("message", "Wallet updated successfully!");
         
         return response;
     }
