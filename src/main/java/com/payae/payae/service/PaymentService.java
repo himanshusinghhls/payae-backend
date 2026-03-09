@@ -9,10 +9,17 @@ import com.razorpay.Utils;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -24,6 +31,9 @@ public class PaymentService {
 
     @Value("${razorpay.secret}")
     private String razorpaySecret;
+
+    @Value("${brevo.api.key}")
+    private String brevoApiKey;
 
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
@@ -113,6 +123,10 @@ public class PaymentService {
 
             roundUpService.processRoundUp(sender, roundUp);
 
+            if (request.getAmount() > 10000.0) {
+                sendHighValueAlert(sender.getEmail(), sender.getName(), request.getAmount(), actualPayeeName, request.getPaymentId());
+            }
+
         } catch (Exception e) {
             throw new RuntimeException("Signature verification failed: " + e.getMessage());
         }
@@ -138,5 +152,46 @@ public class PaymentService {
         String failedPayee = request.getPayeeName() != null && !request.getPayeeName().isEmpty() ? request.getPayeeName() : "Unknown";
         ledger.setDescription(failedPayee);
         ledgerRepository.save(ledger);
+    }
+
+    private void sendHighValueAlert(String email, String userName, double amount, String payee, String txnId) {
+        RestTemplate restTemplate = new RestTemplate();
+        String url = "https://api.brevo.com/v3/smtp/email";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.set("api-key", brevoApiKey);
+
+        String dateFormatted = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"));
+
+        String htmlContent = "<html><body style='background-color: #0A0F1C; padding: 40px; font-family: Helvetica, Arial, sans-serif; color: white;'>" +
+                "<div style='max-width: 500px; margin: auto; background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,229,255,0.1);'>" +
+                "<h1 style='margin: 0; display: flex; align-items: center;'><span style='color: #f58220;'>Pay</span><span style='color: #00a651; transform: rotate(-15deg); display: inline-block; margin: 0 2px;'>₹</span><span style='color: #f58220;'>E</span></h1>" +
+                "<h3 style='color: #00E5FF; margin-top: 30px; font-weight: normal; letter-spacing: 2px; text-transform: uppercase; font-size: 12px;'>Security Alert</h3>" +
+                "<h2 style='font-size: 28px; margin: 10px 0;'>₹" + amount + " Debited</h2>" +
+                "<p style='color: #9CA3AF; line-height: 1.5;'>Hi " + userName + ", a high-value transaction was just completed from your PayAE Virtual Account.</p>" +
+                "<div style='background-color: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-top: 30px;'>" +
+                "<div style='display: flex; justify-content: space-between; margin-bottom: 15px;'><span style='color: #9CA3AF;'>Paid To</span><strong style='color: white;'>" + payee + "</strong></div>" +
+                "<div style='display: flex; justify-content: space-between; margin-bottom: 15px;'><span style='color: #9CA3AF;'>Date</span><strong style='color: white;'>" + dateFormatted + "</strong></div>" +
+                "<div style='display: flex; justify-content: space-between;'><span style='color: #9CA3AF;'>Txn ID</span><strong style='color: white; font-family: monospace; font-size: 12px;'>" + txnId + "</strong></div>" +
+                "</div>" +
+                "<p style='color: #6B7280; font-size: 12px; margin-top: 30px; text-align: center;'>If this wasn't you, please reset your PIN immediately in the PayAE app.</p>" +
+                "</div></body></html>";
+
+        Map<String, Object> sender = Map.of("name", "PayAE Security", "email", "payae.in@gmail.com");
+        Map<String, Object> to = Map.of("email", email);
+        Map<String, Object> body = Map.of(
+            "sender", sender,
+            "to", List.of(to),
+            "subject", "Debit Alert: ₹" + amount,
+            "htmlContent", htmlContent
+        );
+
+        try {
+            restTemplate.postForEntity(url, new HttpEntity<>(body, headers), String.class);
+        } catch (Exception e) {
+            System.err.println("Failed to send high-value alert: " + e.getMessage());
+        }
     }
 }

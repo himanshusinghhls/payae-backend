@@ -40,6 +40,7 @@ public class AuthService {
         }
         String otp = String.format("%06d", new Random().nextInt(999999));
         otpCache.put(email, otp);
+        
         RestTemplate restTemplate = new RestTemplate();
         String url = "https://api.brevo.com/v3/smtp/email";
 
@@ -48,6 +49,18 @@ public class AuthService {
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
         headers.set("api-key", brevoApiKey);
 
+        String htmlContent = "<html><body style='background-color: #0A0F1C; padding: 40px; font-family: Helvetica, Arial, sans-serif; color: white;'>" +
+                "<div style='max-width: 500px; margin: auto; background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,229,255,0.1);'>" +
+                "<h1 style='margin: 0; display: flex; align-items: center;'><span style='color: #f58220;'>Pay</span><span style='color: #00a651; transform: rotate(-15deg); display: inline-block; margin: 0 2px;'>₹</span><span style='color: #f58220;'>E</span></h1>" +
+                "<h3 style='color: #00E5FF; margin-top: 30px; font-weight: normal; letter-spacing: 2px; text-transform: uppercase; font-size: 12px;'>Identity Verification</h3>" +
+                "<h2 style='font-size: 28px; margin: 10px 0;'>Your OTP Code</h2>" +
+                "<p style='color: #9CA3AF; line-height: 1.5;'>Please use the following 6-digit code to verify your email address. This code will expire shortly.</p>" +
+                "<div style='background-color: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-top: 30px; text-align: center;'>" +
+                "<strong style='color: #00E5FF; font-family: monospace; font-size: 36px; letter-spacing: 8px;'>" + otp + "</strong>" +
+                "</div>" +
+                "<p style='color: #6B7280; font-size: 12px; margin-top: 30px; text-align: center;'>If you didn't request this, please ignore this email.</p>" +
+                "</div></body></html>";
+
         Map<String, Object> sender = Map.of("name", "PayAE Security", "email", "payae.in@gmail.com");
         Map<String, Object> to = Map.of("email", email);
         
@@ -55,18 +68,11 @@ public class AuthService {
             "sender", sender,
             "to", List.of(to),
             "subject", "Your PayAE Verification Code",
-            "htmlContent", "<html><body><div style='font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;'>" +
-                           "<h2 style='color: #0A0F1C;'>Welcome to PayAE!</h2>" +
-                           "<p>Your secure 6-digit verification code is:</p>" +
-                           "<h1 style='color: #00E5FF; font-size: 32px; letter-spacing: 5px;'>" + otp + "</h1>" +
-                           "<p style='color: #888;'>Do not share this code with anyone. It will expire shortly.</p>" +
-                           "</div></body></html>"
+            "htmlContent", htmlContent
         );
 
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-
         try {
-            restTemplate.postForEntity(url, request, String.class);
+            restTemplate.postForEntity(url, new HttpEntity<>(body, headers), String.class);
             System.out.println("✅ HTTP Email successfully sent to " + email);
         } catch (Exception e) {
             System.err.println("❌ Failed to send email via Brevo HTTP API: " + e.getMessage());
@@ -100,6 +106,8 @@ public class AuthService {
         portfolioRepository.save(portfolio);
         
         otpCache.remove(request.getEmail());
+
+        sendWelcomeEmail(user.getEmail(), user.getName());
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -127,7 +135,7 @@ public class AuthService {
                     User newUser = User.builder()
                             .name(name)
                             .email(email)
-                            .password(passwordEncoder.encode(java.util.UUID.randomUUID().toString())) // Secure random password
+                            .password(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
                             .roundupType("FIXED")
                             .roundupValue(10.0)
                             .allocationSavings(50.0)
@@ -142,6 +150,9 @@ public class AuthService {
                     Portfolio portfolio = new Portfolio();
                     portfolio.setUser(newUser);
                     portfolioRepository.save(portfolio);
+
+                    sendWelcomeEmail(newUser.getEmail(), newUser.getName());
+
                     return newUser;
                 });
 
@@ -151,6 +162,50 @@ public class AuthService {
             }
         } catch (Exception e) {
             throw new RuntimeException("Google authentication failed");
+        }
+    }
+
+    private void sendWelcomeEmail(String email, String userName) {
+        RestTemplate restTemplate = new RestTemplate();
+        String url = "https://api.brevo.com/v3/smtp/email";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.set("api-key", brevoApiKey);
+
+        String htmlContent = "<html><body style='background-color: #0A0F1C; padding: 40px; font-family: Helvetica, Arial, sans-serif; color: white;'>" +
+                "<div style='max-width: 500px; margin: auto; background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,229,255,0.1);'>" +
+                "<h1 style='margin: 0; display: flex; align-items: center;'><span style='color: #f58220;'>Pay</span><span style='color: #00a651; transform: rotate(-15deg); display: inline-block; margin: 0 2px;'>₹</span><span style='color: #f58220;'>E</span></h1>" +
+                "<h3 style='color: #00E5FF; margin-top: 30px; font-weight: normal; letter-spacing: 2px; text-transform: uppercase; font-size: 12px;'>Welcome Aboard</h3>" +
+                "<h2 style='font-size: 28px; margin: 10px 0;'>Welcome, " + userName + "!</h2>" +
+                "<p style='color: #9CA3AF; line-height: 1.5;'>Your account has been successfully created. You are now ready to start automating your wealth with every transaction.</p>" +
+                "<div style='background-color: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-top: 30px;'>" +
+                "<p style='color: white; margin: 0 0 10px 0; font-weight: bold;'>Next Steps:</p>" +
+                "<ul style='color: #9CA3AF; margin: 0; padding-left: 20px; line-height: 1.8;'>" +
+                "<li>Top up your Virtual Balance</li>" +
+                "<li>Set your Auto-Invest allocation rules</li>" +
+                "<li>Make your first secure payment</li>" +
+                "</ul>" +
+                "</div>" +
+                "<p style='color: #6B7280; font-size: 12px; margin-top: 30px; text-align: center;'>Welcome to the future of micro-investing.</p>" +
+                "</div></body></html>";
+
+        Map<String, Object> sender = Map.of("name", "PayAE Team", "email", "payae.in@gmail.com");
+        Map<String, Object> to = Map.of("email", email);
+        
+        Map<String, Object> body = Map.of(
+            "sender", sender,
+            "to", List.of(to),
+            "subject", "Welcome to PayAE!",
+            "htmlContent", htmlContent
+        );
+
+        try {
+            restTemplate.postForEntity(url, new HttpEntity<>(body, headers), String.class);
+            System.out.println("✅ Welcome Email successfully sent to " + email);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send welcome email via Brevo HTTP API: " + e.getMessage());
         }
     }
 }
