@@ -6,6 +6,7 @@ import com.payae.payae.repository.LedgerRepository;
 import com.payae.payae.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -19,6 +20,7 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final LedgerRepository ledgerRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/me")
     public Map<String, String> getCurrentProfile(Authentication auth) {
@@ -27,8 +29,32 @@ public class UserController {
         Map<String, String> profile = new HashMap<>();
         profile.put("name", user.getName());
         profile.put("email", user.getEmail());
+        profile.put("pin", user.getPin() != null ? user.getPin() : "0000"); 
         
         return profile;
+    }
+
+    @PutMapping("/profile")
+    public Map<String, String> updateProfile(Authentication auth, @RequestBody Map<String, String> payload) {
+        User user = userRepository.findByEmail(auth.getName()).orElseThrow();
+
+        if (payload.containsKey("name") && !payload.get("name").trim().isEmpty()) {
+            user.setName(payload.get("name"));
+        }
+        
+        if (payload.containsKey("password") && !payload.get("password").trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(payload.get("password")));
+        }
+
+        if (payload.containsKey("pin") && payload.get("pin").length() == 4) {
+            user.setPin(payload.get("pin"));
+        }
+
+        userRepository.save(user);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Profile updated successfully");
+        return response;
     }
 
     @PostMapping("/topup")

@@ -37,4 +37,16 @@ public class AuthController {
     public ResponseEntity<AuthResponse> googleLogin(@RequestBody Map<String, String> request) {
         return ResponseEntity.ok(authService.googleLogin(request.get("token")));
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<String>> forgotPassword(@RequestBody Map<String, String> request) {
+        authService.sendPasswordResetOtp(request.get("email"));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Password reset OTP sent", null));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<String>> resetPassword(@RequestBody Map<String, String> request) {
+        authService.resetPassword(request.get("email"), request.get("otp"), request.get("newPassword"));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Password reset successfully", null));
+    }
 }

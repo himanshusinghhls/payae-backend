@@ -36,6 +36,6 @@ public class User {
     private boolean autoSavingPaused;
 
     private Double monthlyCap;
-
+    private String pin = "0000";
     private LocalDateTime createdAt;
 }
