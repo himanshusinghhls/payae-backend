@@ -10,7 +10,7 @@
 
 > PayAE is a full-stack fintech platform that intercepts secure UPI payments, mathematically calculates fractional spare change, and automatically routes those funds into diversified asset portfolios like Digital Gold and Mutual Funds.
 
-**[🖥️ View Frontend Repository](https://github.com/himanshusinghhls/payae-frontend) | [⚙️ View Backend Repository](https://github.com/himanshusinghhls/payae-backend)**
+**[🚀 Live](https://payae.vercel.app) | [🖥️ View Frontend Repository](https://github.com/himanshusinghhls/payae-frontend) | [⚙️ View Backend Repository](https://github.com/himanshusinghhls/payae-backend)**
 
 </div>
 
