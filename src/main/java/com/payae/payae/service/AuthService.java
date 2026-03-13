@@ -232,7 +232,6 @@ public class AuthService {
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
         headers.set("api-key", brevoApiKey);
 
-        // 🎨 3. Welcome Email with new Logo
         String htmlContent = "<html><body style='background-color: #0A0F1C; padding: 40px; font-family: Helvetica, Arial, sans-serif; color: white;'>" +
                 "<div style='max-width: 500px; margin: auto; background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,229,255,0.1);'>" +
                 "<h1 style='margin: 0; font-size: 36px; font-weight: 800; letter-spacing: -1px; color: white;'>Pay<span style='color: #f58220;'>A</span><span style='color: #00FF94; transform: rotate(-15deg); display: inline-block; margin: 0 -2px; font-weight: 900; font-size: 32px;'>₹</span><span style='color: #f58220;'>E</span></h1>" +

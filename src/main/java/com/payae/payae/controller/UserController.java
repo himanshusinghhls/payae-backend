@@ -30,8 +30,20 @@ public class UserController {
         profile.put("name", user.getName());
         profile.put("email", user.getEmail());
         profile.put("pin", user.getPin() != null ? user.getPin() : "0000"); 
+        profile.put("hasCompletedOnboarding", String.valueOf(user.isHasCompletedOnboarding()));
         
         return profile;
+    }
+
+    @PostMapping("/onboarding/complete")
+    public Map<String, Object> completeOnboarding(Authentication auth) {
+        User user = userRepository.findByEmail(auth.getName()).orElseThrow();
+        user.setHasCompletedOnboarding(true);
+        userRepository.save(user);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        return response;
     }
 
     @PutMapping("/profile")

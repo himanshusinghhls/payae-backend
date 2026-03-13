@@ -15,8 +15,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
-
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -163,7 +163,8 @@ public class PaymentService {
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
         headers.set("api-key", brevoApiKey);
 
-        String dateFormatted = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"));
+        String dateFormatted = LocalDateTime.now(ZoneId.of("Asia/Kolkata"))
+                .format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a 'IST'"));
 
         String htmlContent = "<html><body style='background-color: #0A0F1C; padding: 40px; font-family: Helvetica, Arial, sans-serif; color: white;'>" +
                 "<div style='max-width: 500px; margin: auto; background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,229,255,0.1);'>" +

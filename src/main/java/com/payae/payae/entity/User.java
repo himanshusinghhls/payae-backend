@@ -36,6 +36,12 @@ public class User {
     private boolean autoSavingPaused;
 
     private Double monthlyCap;
+    
+    @Builder.Default
     private String pin = "0000";
+    
+    @Builder.Default
+    private boolean hasCompletedOnboarding = false;
+
     private LocalDateTime createdAt;
 }
