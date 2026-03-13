@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${SPRING_DATABASE_URL}
-    username: ${SPRING_DATABASE_USERNAME}
-    password: ${SPRING_DATABASE_PASSWORD}
+    url: jdbc:postgresql://ep-icy-math-a10ww8ba-pooler.ap-southeast-1.aws.neon.tech:5432/neondb
+    username: neondb_owner
+    password: npg_mrUZtc0JMe6X
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -13,7 +13,7 @@ spring:
 
 brevo:
   api:
-    key: "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"
+    key: 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
 
 server:
   port: 8080
