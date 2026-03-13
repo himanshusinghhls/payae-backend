@@ -13,7 +13,7 @@ spring:
 
 brevo:
   api:
-    key: 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
+    key: ${BREVO_API}
 
 server:
   port: 8080
