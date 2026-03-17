@@ -127,7 +127,12 @@ public class PaymentService {
             String actualPayeeName = request.getPayeeName() != null && !request.getPayeeName().isEmpty() ? request.getPayeeName() : "UPI Payment";
 
             if (payeeUpi != null && !payeeUpi.isEmpty()) {
-                Optional<User> receiverOpt = userRepository.findByEmail(payeeUpi);
+                Optional<User> receiverOpt;
+                if (payeeUpi.toLowerCase().endsWith("@payae")) {
+                    receiverOpt = userRepository.findByPayaeId(payeeUpi);
+                } else {
+                    receiverOpt = userRepository.findByEmail(payeeUpi);
+                }
                 
                 if (receiverOpt.isPresent()) {
                     User receiver = receiverOpt.get();
