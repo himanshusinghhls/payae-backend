@@ -51,6 +51,48 @@ public class PaymentService {
     }
 
     @Transactional
+    public void verifyTopUp(PaymentVerifyRequest request, String email) {
+        try {
+            JSONObject options = new JSONObject();
+            options.put("razorpay_order_id", request.getOrderId());
+            options.put("razorpay_payment_id", request.getPaymentId());
+            options.put("razorpay_signature", request.getSignature());
+
+            boolean valid = Utils.verifyPaymentSignature(options, razorpaySecret);
+            if (!valid) {
+                throw new RuntimeException("Invalid Top-Up signature");
+            }
+
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            double currentBalance = user.getBankBalance() != null ? user.getBankBalance() : 0.0;
+            user.setBankBalance(currentBalance + request.getAmount());
+            userRepository.save(user);
+
+            Payment payment = new Payment();
+            payment.setRazorpayOrderId(request.getOrderId());
+            payment.setRazorpayPaymentId(request.getPaymentId());
+            payment.setAmount(request.getAmount());
+            payment.setUser(user);
+            payment.setStatus("SUCCESS");
+            payment.setCreatedAt(LocalDateTime.now());
+            paymentRepository.save(payment);
+
+            Ledger ledger = new Ledger();
+            ledger.setUser(user);
+            ledger.setAmount(request.getAmount());
+            ledger.setType("TOPUP");
+            ledger.setDescription("Virtual Wallet Top-Up");
+            ledger.setTimestamp(LocalDateTime.now());
+            ledgerRepository.save(ledger);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Top-Up verification failed: " + e.getMessage());
+        }
+    }
+
+    @Transactional
     public void verifyPayment(PaymentVerifyRequest request, String email) {
         try {
             JSONObject options = new JSONObject();

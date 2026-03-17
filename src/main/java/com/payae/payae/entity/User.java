@@ -43,5 +43,8 @@ public class User {
     @Builder.Default
     private boolean hasCompletedOnboarding = false;
 
+    @Builder.Default
+    private Double wealthGoal = 2000.0;
+
     private LocalDateTime createdAt;
 }

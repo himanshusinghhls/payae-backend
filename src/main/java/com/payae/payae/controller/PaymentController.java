@@ -28,6 +28,15 @@ public class PaymentController {
         return new ApiResponse<>(true, "Payment verified", null);
     }
 
+    @PostMapping("/verify-topup")
+    public ApiResponse<?> verifyTopUp(
+            @RequestBody PaymentVerifyRequest request,
+            Authentication authentication
+    ){
+        paymentService.verifyTopUp(request, authentication.getName());
+        return new ApiResponse<>(true, "Top-Up verified successfully", null);
+    }
+
     @PostMapping("/failed")
     public ApiResponse<?> logFailedPayment(
             @RequestBody PaymentVerifyRequest request,

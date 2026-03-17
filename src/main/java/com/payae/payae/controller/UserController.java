@@ -4,6 +4,7 @@ import com.payae.payae.entity.Ledger;
 import com.payae.payae.entity.User;
 import com.payae.payae.repository.LedgerRepository;
 import com.payae.payae.repository.UserRepository;
+import com.payae.payae.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,6 +22,7 @@ public class UserController {
     private final UserRepository userRepository;
     private final LedgerRepository ledgerRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthService authService;
 
     @GetMapping("/me")
     public Map<String, String> getCurrentProfile(Authentication auth) {
@@ -31,6 +33,7 @@ public class UserController {
         profile.put("email", user.getEmail());
         profile.put("pin", user.getPin() != null ? user.getPin() : "0000"); 
         profile.put("hasCompletedOnboarding", String.valueOf(user.isHasCompletedOnboarding()));
+        profile.put("wealthGoal", String.valueOf(user.getWealthGoal() != null ? user.getWealthGoal() : 50000.0));
         
         return profile;
     }
@@ -62,10 +65,30 @@ public class UserController {
             user.setPin(payload.get("pin"));
         }
 
+        if (payload.containsKey("wealthGoal") && !payload.get("wealthGoal").trim().isEmpty()) {
+            user.setWealthGoal(Double.parseDouble(payload.get("wealthGoal")));
+        }
+
         userRepository.save(user);
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "Profile updated successfully");
+        return response;
+    }
+
+    @PostMapping("/forgot-pin")
+    public Map<String, String> forgotPin(Authentication auth) {
+        authService.sendPinResetOtp(auth.getName());
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "OTP sent to email");
+        return response;
+    }
+
+    @PostMapping("/reset-pin")
+    public Map<String, String> resetPin(Authentication auth, @RequestBody Map<String, String> payload) {
+        authService.resetPin(auth.getName(), payload.get("otp"), payload.get("newPin"));
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "PIN updated successfully");
         return response;
     }
 

@@ -33,8 +33,8 @@ public class AuthService {
     private String brevoApiKey;
 
     private final Map<String, String> otpCache = new ConcurrentHashMap<>();
-    
     private final Map<String, String> resetOtpCache = new ConcurrentHashMap<>();
+    private final Map<String, String> pinResetOtpCache = new ConcurrentHashMap<>();
 
     public void sendOtp(String email) {
         if (userRepository.findByEmail(email).isPresent()) {
@@ -221,6 +221,62 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
         resetOtpCache.remove(email);
+    }
+
+    public void sendPinResetOtp(String email) {
+        if (userRepository.findByEmail(email).isEmpty()) {
+            throw new UserNotFoundException("No account found with this email");
+        }
+        String otp = String.format("%06d", new Random().nextInt(999999));
+        pinResetOtpCache.put(email, otp);
+
+        RestTemplate restTemplate = new RestTemplate();
+        String url = "https://api.brevo.com/v3/smtp/email";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.set("api-key", brevoApiKey);
+
+        String htmlContent = "<html><body style='background-color: #0A0F1C; padding: 40px; font-family: Helvetica, Arial, sans-serif; color: white;'>" +
+                "<div style='max-width: 500px; margin: auto; background-color: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,229,255,0.1);'>" +
+                "<h1 style='margin: 0; font-size: 36px; font-weight: 800; letter-spacing: -1px; color: white;'>Pay<span style='color: #f58220;'>A</span><span style='color: #00FF94; transform: rotate(-15deg); display: inline-block; margin: 0 -2px; font-weight: 900; font-size: 32px;'>₹</span><span style='color: #f58220;'>E</span></h1>" +
+                "<h3 style='color: #00E5FF; margin-top: 30px; font-weight: normal; letter-spacing: 2px; text-transform: uppercase; font-size: 12px;'>PIN Reset Request</h3>" +
+                "<h2 style='font-size: 28px; margin: 10px 0;'>Your Reset Code</h2>" +
+                "<p style='color: #9CA3AF; line-height: 1.5;'>You requested to reset your 4-digit App PIN. Use the following 6-digit code to proceed. If you didn't request this, your account is secure, but you should ignore this email.</p>" +
+                "<div style='background-color: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-top: 30px; text-align: center;'>" +
+                "<strong style='color: #00E5FF; font-family: monospace; font-size: 36px; letter-spacing: 8px;'>" + otp + "</strong>" +
+                "</div>" +
+                "</div></body></html>";
+
+        Map<String, Object> sender = Map.of("name", "PayAE Security", "email", "payae.in@gmail.com");
+        Map<String, Object> to = Map.of("email", email);
+        
+        Map<String, Object> body = Map.of(
+            "sender", sender,
+            "to", List.of(to),
+            "subject", "PayAE PIN Reset Code",
+            "htmlContent", htmlContent
+        );
+
+        try {
+            restTemplate.postForEntity(url, new HttpEntity<>(body, headers), String.class);
+            System.out.println("✅ PIN Reset Email successfully sent to " + email);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send PIN reset email via Brevo HTTP API: " + e.getMessage());
+        }
+    }
+
+    public void resetPin(String email, String otp, String newPin) {
+        if (otp == null || !otp.equals(pinResetOtpCache.get(email))) {
+            throw new InvalidCredentialsException("Invalid or expired PIN Reset OTP");
+        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        
+        user.setPin(newPin);
+        userRepository.save(user);
+        pinResetOtpCache.remove(email);
     }
 
     private void sendWelcomeEmail(String email, String userName) {
