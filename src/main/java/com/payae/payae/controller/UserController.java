@@ -5,6 +5,7 @@ import com.payae.payae.entity.User;
 import com.payae.payae.repository.LedgerRepository;
 import com.payae.payae.repository.UserRepository;
 import com.payae.payae.service.AuthService;
+import com.payae.payae.service.PortfolioService; // Imported the service
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +24,7 @@ public class UserController {
     private final LedgerRepository ledgerRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthService authService;
+    private final PortfolioService portfolioService;
 
     @GetMapping("/me")
     public Map<String, String> getCurrentProfile(Authentication auth) {
@@ -115,6 +117,8 @@ public class UserController {
             ledger.setType("LIQUIDATION");
             ledger.setAssetType(assetType);
             ledger.setDescription("Liquidated from " + assetType);
+            portfolioService.liquidateAsset(user, assetType, amountToAdd);
+            
         } else {
             ledger.setType("TOPUP");
             ledger.setDescription("Wallet Top-Up");

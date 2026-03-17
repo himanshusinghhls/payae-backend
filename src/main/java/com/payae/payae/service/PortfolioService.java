@@ -46,4 +46,22 @@ public class PortfolioService {
 
         portfolioRepository.save(portfolio);
     }
+
+    @Transactional
+    public void liquidateAsset(User user, String assetType, Double amountInr) {
+        Portfolio portfolio = portfolioRepository.findByUser(user);
+        if (portfolio == null) return;
+
+        if ("SAVINGS".equalsIgnoreCase(assetType)) {
+            portfolio.setSavingsBalance(Math.max(0, portfolio.getSavingsBalance() - amountInr));
+        } else if ("MF".equalsIgnoreCase(assetType) || "MUTUAL_FUND".equalsIgnoreCase(assetType)) {
+            double nav = marketSimulationService.getCurrentNav();
+            portfolio.setMfUnits(Math.max(0, portfolio.getMfUnits() - (amountInr / nav)));
+        } else if ("GOLD".equalsIgnoreCase(assetType)) {
+            double goldPrice = marketSimulationService.getCurrentGoldPrice();
+            portfolio.setGoldGrams(Math.max(0, portfolio.getGoldGrams() - (amountInr / goldPrice)));
+        }
+        
+        portfolioRepository.save(portfolio);
+    }
 }
