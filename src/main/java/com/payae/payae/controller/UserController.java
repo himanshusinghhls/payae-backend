@@ -5,7 +5,7 @@ import com.payae.payae.entity.User;
 import com.payae.payae.repository.LedgerRepository;
 import com.payae.payae.repository.UserRepository;
 import com.payae.payae.service.AuthService;
-import com.payae.payae.service.PortfolioService; // Imported the service
+import com.payae.payae.service.PortfolioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
